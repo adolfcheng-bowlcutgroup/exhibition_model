@@ -432,10 +432,17 @@
 
     .summary-status {
       display: inline-flex;
-      align-items: center;
+      align-items: baseline;
       gap: 10px;
       font-size: 18px;
       font-weight: 800;
+    }
+
+    .signal-sub {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 600;
+      line-height: 1.4;
     }
 
     .signal-dot {
@@ -1166,7 +1173,14 @@
 
       document.getElementById('totalCostCard').textContent = money(totalCost);
       document.getElementById('totalRevenueCard').textContent = money(totalRevenue);
-      document.getElementById('surplusCard').textContent = `${surplus >= 0 ? '+' : '-'}${money(Math.abs(surplus)).replace('NT$ ', 'NT$ ')}`;
+      const surplusEl = document.getElementById('surplusCard');
+      if (surplus >= 0) {
+        surplusEl.textContent = money(surplus);
+        surplusEl.style.color = 'var(--good)';
+      } else {
+        surplusEl.textContent = `(${money(Math.abs(surplus))})`;
+        surplusEl.style.color = 'var(--bad)';
+      }
       document.getElementById('dailyTrafficCard').textContent = `${num(dailyTrafficNeeded)} 人/日`;
       document.getElementById('trafficCard').textContent = `${num(trafficNeeded)} 人`;
       document.getElementById('buyersCard').textContent = `${num(buyersNeeded)} 人`;
@@ -1625,7 +1639,7 @@
       const signalDot = document.getElementById('productRevenueSignalDot');
       const signalText = document.getElementById('productRevenueSignalText');
       signalDot.className = `signal-dot ${revenueStatus.dotClass}`;
-      signalText.textContent = `${revenueStatus.label}（總收入 ${money(currentMainModelData.totalRevenue)} / 總投入成本 ${money(currentMainModelData.totalCost)}）`;
+      signalText.innerHTML = `${revenueStatus.label}<span class="signal-sub">（總收入 ${money(currentMainModelData.totalRevenue)} / 總投入成本 ${money(currentMainModelData.totalCost)}）</span>`;
 
       if (currentMainModelData.totalCost > 0) {
         diagnosis.push(`依主模型目前計算，總收入為 ${money(currentMainModelData.totalRevenue)}，相對總投入成本的營收狀態為「${revenueStatus.label}」。`);
