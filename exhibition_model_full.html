@@ -425,6 +425,95 @@
       font-weight: 800;
     }
 
+    .readonly-input {
+      background: #f8fafc;
+      color: #475467;
+    }
+
+    .summary-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .signal-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 999px;
+      display: inline-block;
+      box-shadow: 0 0 0 4px rgba(16, 24, 40, 0.06);
+    }
+
+    .signal-dot.good { background: var(--good); }
+    .signal-dot.mid { background: #36b37e; }
+    .signal-dot.low { background: var(--warn); }
+    .signal-dot.bad { background: var(--bad); }
+
+    .logic-details {
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      overflow: hidden;
+      background: #fff;
+    }
+
+    .logic-summary {
+      list-style: none;
+      cursor: pointer;
+      padding: 16px 18px;
+      font-size: 15px;
+      font-weight: 800;
+      color: #1d3557;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .logic-summary::-webkit-details-marker { display: none; }
+    .logic-summary::after {
+      content: '展開';
+      color: #2457d6;
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .logic-details[open] .logic-summary::after {
+      content: '收合';
+    }
+
+    .logic-body {
+      padding: 0 18px 18px;
+    }
+
+
+
+    .sort-controls {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: end;
+      margin-bottom: 14px;
+    }
+
+    .sort-control {
+      min-width: 180px;
+      display: grid;
+      gap: 6px;
+    }
+
+    .sort-control label {
+      font-size: 12px;
+      color: var(--muted);
+      font-weight: 700;
+    }
+
+    .sort-control select {
+      padding: 10px 12px;
+      font-size: 14px;
+    }
+
     @media (max-width: 1180px) {
       .grid, .product-grid, .band { grid-template-columns: 1fr; }
       .cards { grid-template-columns: repeat(2, 1fr); }
@@ -501,10 +590,34 @@
                   <div class="desc">首批打樣、生產、包材、運輸等前置成本</div>
                   <input id="production" type="number" value="250000" min="0" />
                 </div>
+
+                <div class="field">
+                  <label for="marketing">行銷費（元）</label>
+                  <div class="desc">廣告投放、宣傳素材、社群合作與媒體曝光等費用</div>
+                  <input id="marketing" type="number" value="0" min="0" />
+                </div>
+
+                <div class="field">
+                  <label for="logistics">物流倉儲費（元）</label>
+                  <div class="desc">倉租、進退貨、補貨運輸、物流處理等成本</div>
+                  <input id="logistics" type="number" value="0" min="0" />
+                </div>
+
+                <div class="field">
+                  <label for="travel">交通住宿費（元）</label>
+                  <div class="desc">出差、場勘、進撤場與跨區支援的交通住宿費用</div>
+                  <input id="travel" type="number" value="0" min="0" />
+                </div>
               </div>
 
               <div class="group">
                 <div class="subsection-title">B. 收入結構</div>
+
+                <div class="field">
+                  <label for="productRevenue">商品收入（元）</label>
+                  <div class="desc">自動帶入商品架構試算的營收潛力 × 70%</div>
+                  <input id="productRevenue" class="readonly-input" type="number" value="0" min="0" readonly />
+                </div>
 
                 <div class="field">
                   <label for="ticketRevenue">門票收入（元）</label>
@@ -593,26 +706,21 @@
           <div class="panel">
             <div class="panel-inner">
               <h2 class="section-title">核心輸出</h2>
-              <div class="cards">
+              <div class="cards four">
                 <div class="card">
                   <div class="k">總投入成本</div>
                   <div class="v" id="totalCostCard">-</div>
                   <div class="s">固定成本加總後再含風險緩衝</div>
                 </div>
                 <div class="card">
-                  <div class="k">非商品收入</div>
-                  <div class="v" id="nonMerchRevenueCard">-</div>
-                  <div class="s">門票收入 + 其他收入</div>
+                  <div class="k">總收入</div>
+                  <div class="v" id="totalRevenueCard">-</div>
+                  <div class="s">商品收入 + 門票收入 + 其他收入</div>
                 </div>
                 <div class="card">
-                  <div class="k">有效毛利率</div>
-                  <div class="v" id="effectiveMarginCard">-</div>
-                  <div class="s">扣除抽成後的實際可留存毛利</div>
-                </div>
-                <div class="card">
-                  <div class="k">損益平衡商品營收</div>
-                  <div class="v" id="breakevenRevenueCard">-</div>
-                  <div class="s">商品至少需做到的營收規模</div>
+                  <div class="k">收支差額</div>
+                  <div class="v" id="surplusCard">-</div>
+                  <div class="s">總收入減總投入成本</div>
                 </div>
                 <div class="card">
                   <div class="k">每日所需人流</div>
@@ -689,12 +797,12 @@
                   <thead>
                     <tr>
                       <th>情境</th>
-                      <th>有效毛利率</th>
+                      <th>總投入成本</th>
+                      <th>總收入</th>
+                      <th>收支差額</th>
                       <th>轉換率</th>
                       <th>客單價</th>
-                      <th>損益平衡商品營收</th>
-                      <th>損益平衡總人流</th>
-                      <th>每日所需人流</th>
+                      <th>每日所需補足人流</th>
                     </tr>
                   </thead>
                   <tbody id="scenarioTable"></tbody>
@@ -706,10 +814,15 @@
           <div class="panel">
             <div class="panel-inner">
               <h2 class="section-title">模型邏輯</h2>
-              <div class="formula" id="formulaText"></div>
-              <div class="footer-note">
-                這個模型適合企劃前期資料不足時的快速篩案。它不是完整 P&amp;L，而是把「固定成本已知、收入部分已知、商品銷售未知」的情境，轉成容易討論的營運門檻。
-              </div>
+              <details class="logic-details">
+                <summary class="logic-summary">查看模型計算方式</summary>
+                <div class="logic-body">
+                  <div class="formula" id="formulaText"></div>
+                  <div class="footer-note">
+                    這個模型適合企劃前期資料不足時的快速篩案。它不是完整 P&amp;L，而是把「固定成本已知、收入部分已知、商品銷售未知」的情境，轉成容易討論的營運門檻。
+                  </div>
+                </div>
+              </details>
             </div>
           </div>
         </div>
@@ -727,6 +840,9 @@
               <button class="primary" onclick="addProductRow()">新增商品</button>
               <button class="secondary" onclick="loadProductSample()">載入範例</button>
               <button class="secondary" onclick="calculateProductStructure()">產出商品架構回饋表</button>
+              <button class="secondary" onclick="exportProductStructureData()">匯出資料</button>
+              <button class="secondary" type="button" onclick="document.getElementById('productImportInput').click()">匯入資料</button>
+              <input id="productImportInput" type="file" accept="application/json,.json" onchange="importProductStructureData(event)" style="display:none;" />
             </div>
 
             <div class="table-wrap">
@@ -770,8 +886,19 @@
                   <div class="v" id="productSkuCard">-</div>
                 </div>
                 <div class="summary-item">
+                  <div class="k">商品製作總成本</div>
+                  <div class="v" id="productCostCard">-</div>
+                </div>
+                <div class="summary-item">
                   <div class="k">營收潛力</div>
                   <div class="v" id="productRevenueCard">-</div>
+                </div>
+                <div class="summary-item">
+                  <div class="k">營收狀態燈號</div>
+                  <div class="summary-status">
+                    <span id="productRevenueSignalDot" class="signal-dot bad"></span>
+                    <span id="productRevenueSignalText">待計算</span>
+                  </div>
                 </div>
                 <div class="summary-item">
                   <div class="k">平均售價</div>
@@ -818,6 +945,34 @@
         <div class="panel">
           <div class="panel-inner">
             <h2 class="section-title">商品明細試算表</h2>
+            <div class="sort-controls">
+              <div class="sort-control">
+                <label for="detailSortField">排序欄位</label>
+                <select id="detailSortField">
+                  <option value="original">原始順序</option>
+                  <option value="tier">毛利位階</option>
+                  <option value="price">售價</option>
+                  <option value="marginRate">毛利率</option>
+                  <option value="revenue">營收潛力</option>
+                  <option value="cost">成本</option>
+                  <option value="skuCount">SKU數</option>
+                  <option value="total">總件數</option>
+                  <option value="unitPerSku">單SKU數量</option>
+                  <option value="name">商品名稱</option>
+                </select>
+              </div>
+              <div class="sort-control">
+                <label for="detailSortDirection">排序方向</label>
+                <select id="detailSortDirection">
+                  <option value="desc">高 → 低</option>
+                  <option value="asc">低 → 高</option>
+                </select>
+              </div>
+              <div class="actions" style="margin-top: 18px;">
+                <button class="secondary" type="button" onclick="applyDetailSort()">套用排序</button>
+                <button class="secondary" type="button" onclick="resetDetailSort()">恢復原始順序</button>
+              </div>
+            </div>
             <div class="table-wrap">
               <table>
                 <thead>
@@ -846,6 +1001,33 @@
     const money = n => 'NT$ ' + Math.round(n || 0).toLocaleString('zh-TW');
     const num = n => Math.round(n || 0).toLocaleString('zh-TW');
     const pct = n => `${Number(n || 0).toFixed(1)}%`;
+
+    let currentMainModelData = {
+      totalCost: 0,
+      totalRevenue: 0,
+      productRevenue: 0,
+      ticketRevenue: 0,
+      otherRevenue: 0,
+      surplus: 0
+    };
+
+    function updateAutoProductRevenue(amount) {
+      const el = document.getElementById('productRevenue');
+      if (!el) return;
+      const safeAmount = Math.max(0, Math.round(amount || 0));
+      el.value = safeAmount;
+    }
+
+    function getRevenueHealthStatus(totalRevenue, totalCost) {
+      if (totalCost <= 0) {
+        return { label: '待計算', dotClass: 'bad', ratio: 0 };
+      }
+      const ratio = (totalRevenue - totalCost) / totalCost;
+      if (ratio >= 0.2) return { label: '高', dotClass: 'good', ratio };
+      if (ratio >= 0.1) return { label: '中', dotClass: 'mid', ratio };
+      if (ratio >= 0) return { label: '低', dotClass: 'low', ratio };
+      return { label: '虧損', dotClass: 'bad', ratio };
+    }
 
     function val(id) {
       return Number(document.getElementById(id).value || 0);
@@ -924,8 +1106,14 @@
       const staffDaily = val('staffDaily');
       const days = Math.max(1, val('days'));
       const production = val('production');
+      const marketing = val('marketing');
+      const logistics = val('logistics');
+      const travel = val('travel');
+
+      const productRevenue = val('productRevenue');
       const ticketRevenue = val('ticketRevenue');
       const otherRevenue = val('otherRevenue');
+
       const lowMix = Math.max(0, val('lowMix'));
       const midMix = Math.max(0, val('midMix'));
       const highMix = Math.max(0, val('highMix'));
@@ -938,10 +1126,13 @@
       const risk = Math.max(0, val('risk'));
 
       const staffingCost = staffDaily * days;
-      const fixedCost = rent + license + build + staffingCost + production;
+      const fixedCost = rent + license + build + staffingCost + production + marketing + logistics + travel;
       const totalCost = fixedCost * (1 + risk / 100);
-      const nonMerchRevenue = ticketRevenue + otherRevenue;
-      const netCost = Math.max(0, totalCost - nonMerchRevenue);
+
+      const externalRevenue = ticketRevenue + otherRevenue;
+      const totalRevenue = productRevenue + ticketRevenue + otherRevenue;
+      const surplus = totalRevenue - totalCost;
+      const netCost = Math.max(0, totalCost - externalRevenue);
 
       const mixTotal = lowMix + midMix + highMix;
       const normalizedLowMix = mixTotal > 0 ? lowMix / mixTotal : 0;
@@ -960,10 +1151,22 @@
       const trafficNeeded = buyersNeeded / (conv / 100);
       const dailyTrafficNeeded = trafficNeeded / days;
 
+      currentMainModelData = {
+        totalCost,
+        totalRevenue,
+        productRevenue,
+        ticketRevenue,
+        otherRevenue,
+        surplus,
+        externalRevenue,
+        weightedMargin,
+        effectiveMargin,
+        breakevenRevenue
+      };
+
       document.getElementById('totalCostCard').textContent = money(totalCost);
-      document.getElementById('nonMerchRevenueCard').textContent = money(nonMerchRevenue);
-      document.getElementById('effectiveMarginCard').textContent = pct(effectiveMargin);
-      document.getElementById('breakevenRevenueCard').textContent = money(breakevenRevenue);
+      document.getElementById('totalRevenueCard').textContent = money(totalRevenue);
+      document.getElementById('surplusCard').textContent = `${surplus >= 0 ? '+' : '-'}${money(Math.abs(surplus)).replace('NT$ ', 'NT$ ')}`;
       document.getElementById('dailyTrafficCard').textContent = `${num(dailyTrafficNeeded)} 人/日`;
       document.getElementById('trafficCard').textContent = `${num(trafficNeeded)} 人`;
       document.getElementById('buyersCard').textContent = `${num(buyersNeeded)} 人`;
@@ -978,7 +1181,7 @@
       score += Math.min(12, Math.max(0, effectiveMargin - 40) * 0.6);
       score += Math.min(8, Math.max(0, conv - 15) * 0.9);
       score += Math.min(8, Math.max(0, atv - 700) / 80);
-      if (nonMerchRevenue > 0) score += Math.min(10, nonMerchRevenue / 100000);
+      if (externalRevenue > 0) score += Math.min(10, externalRevenue / 100000);
       if (mixTotal < 95 || mixTotal > 105) score -= 8;
       score = Math.round(clamp(0, score, 100));
 
@@ -1000,10 +1203,15 @@
       document.getElementById('scoreMeter').style.width = `${score}%`;
 
       const diagnosis = [];
-      diagnosis.push(`總投入成本為 ${money(totalCost)}，其中已包含硬體建置與風險緩衝。`);
-      diagnosis.push(`非商品收入合計 ${money(nonMerchRevenue)}，因此商品端實際需承擔成本為 ${money(netCost)}。`);
-      diagnosis.push(`商品結構加權毛利率為 ${pct(weightedMargin)}，扣除 ${pct(commission)} 抽成後，有效毛利率為 ${pct(effectiveMargin)}。`);
+      diagnosis.push(`總投入成本為 ${money(totalCost)}，其中已包含商品製作費、行銷費、物流倉儲費、交通住宿費與風險緩衝。`);
+      diagnosis.push(`總收入目前為 ${money(totalRevenue)}，其中商品收入 ${money(productRevenue)}、門票收入 ${money(ticketRevenue)}、其他收入 ${money(otherRevenue)}。`);
       diagnosis.push(`在轉換率 ${pct(conv)} 與客單 ${money(atv)} 的假設下，損益平衡總人流需達 ${num(trafficNeeded)} 人，平均每日 ${num(dailyTrafficNeeded)} 人。`);
+
+      if (surplus >= 0) {
+        diagnosis.push(`以目前收入估算，整體已高於總投入成本 ${money(Math.abs(surplus))}。`);
+      } else {
+        diagnosis.push(`以目前收入估算，距離損益兩平仍差 ${money(Math.abs(surplus))}。`);
+      }
 
       if (dailyTrafficNeeded > 500) {
         diagnosis.push('每日人流門檻偏高，若場地本身不是高自然流量點，投資風險明顯偏大。');
@@ -1020,7 +1228,7 @@
       }
 
       if (mixTotal < 95 || mixTotal > 105) diagnosis.push('商品結構占比合計未接近 100%，建議先校正低 / 中 / 高毛利商品配置。');
-      diagnosis.push(nonMerchRevenue > 0 ? '本案已有非商品收入支撐，代表損益不完全依賴商品銷售，風險相對較低。' : '本案目前完全依賴商品收入回收成本，需特別注意商品吸引力與人流品質。');
+      diagnosis.push(externalRevenue > 0 ? '本案已有門票或其他收入支撐，商品端壓力相對下降。' : '本案目前除了商品收入外，沒有其他收入緩衝，需特別注意商品轉換與客單。');
       document.getElementById('diagnosisList').innerHTML = diagnosis.map(item => `<li>${item}</li>`).join('');
 
       const recommendedMargin =
@@ -1040,7 +1248,7 @@
 
       const recommendedTraffic =
         dailyTrafficNeeded > 400
-          ? '若無法證明高人流來源，建議縮小成本規模、增加非商品收入或重做商品結構。'
+          ? '若無法證明高人流來源，建議縮小成本規模、增加其他收入或重做商品結構。'
           : dailyTrafficNeeded > 250
           ? '需有穩定導流來源，例如百貨主動線、熱門商圈、社群導流或強 IP 題材。'
           : '若場地基本人流穩定，可優先強化商品組合、套組與宣傳轉換。';
@@ -1051,39 +1259,63 @@
       document.getElementById('adviceConversion').textContent = `建議購買轉換率目標不低於 ${pct(recommendedConv)}，否則損益平衡壓力會過度落在人流。`;
 
       const scenarios = [
-        { name: '保守', effectiveMargin: Math.max(8, effectiveMargin - 6), conv: Math.max(5, conv - 4), atv: Math.max(100, atv - 120) },
-        { name: '基準', effectiveMargin: effectiveMargin, conv: conv, atv: atv },
-        { name: '樂觀', effectiveMargin: Math.min(90, effectiveMargin + 6), conv: Math.min(100, conv + 4), atv: atv + 120 }
+        {
+          name: '保守',
+          totalCost: totalCost * 1.10,
+          totalRevenue: totalRevenue * 0.90,
+          conv: Math.max(5, conv - 4),
+          atv: Math.max(100, atv - 120)
+        },
+        {
+          name: '基準',
+          totalCost: totalCost,
+          totalRevenue: totalRevenue,
+          conv: conv,
+          atv: atv
+        },
+        {
+          name: '樂觀',
+          totalCost: totalCost * 0.95,
+          totalRevenue: totalRevenue * 1.10,
+          conv: Math.min(100, conv + 4),
+          atv: atv + 120
+        }
       ];
 
       document.getElementById('scenarioTable').innerHTML = scenarios.map(s => {
-        const r = calculateScenario(netCost, days, s.effectiveMargin, s.conv, s.atv);
+        const gap = Math.max(0, s.totalCost - s.totalRevenue);
+        const safeConv = Math.max(0.1, s.conv) / 100;
+        const safeAtv = Math.max(1, s.atv);
+        const buyers = gap / safeAtv;
+        const traffic = buyers / safeConv;
+        const dailyTraffic = traffic / Math.max(1, days);
+        const balance = s.totalRevenue - s.totalCost;
         return `
           <tr>
             <td>${s.name}</td>
-            <td>${pct(s.effectiveMargin)}</td>
+            <td>${money(s.totalCost)}</td>
+            <td>${money(s.totalRevenue)}</td>
+            <td>${balance >= 0 ? '+' : '-'}${money(Math.abs(balance)).replace('NT$ ', 'NT$ ')}</td>
             <td>${pct(s.conv)}</td>
             <td>${money(s.atv)}</td>
-            <td>${money(r.breakevenRevenue)}</td>
-            <td>${num(r.traffic)} 人</td>
-            <td>${num(r.dailyTraffic)} 人/日</td>
+            <td>${num(dailyTraffic)} 人/日</td>
           </tr>`;
       }).join('');
 
       document.getElementById('formulaText').innerHTML = `
         <strong>步驟 1｜總投入成本</strong><br>
-        總投入成本 =（場租 + 授權金 + 硬體建置費 + 每日營運人力 × 檔期天數 + 商品製作費）×（1 + 風險緩衝）<br><br>
-        <strong>步驟 2｜非商品收入先抵成本</strong><br>
-        商品端需承擔成本 = 總投入成本 −（門票收入 + 其他收入）<br><br>
-        <strong>步驟 3｜商品結構加權毛利</strong><br>
+        總投入成本 =（場租 + 授權金 + 硬體建置費 + 每日營運人力 × 檔期天數 + 商品製作費 + 行銷費 + 物流倉儲費 + 交通住宿費）×（1 + 風險緩衝）<br><br>
+        <strong>步驟 2｜商品收入自動帶入</strong><br>
+        商品收入 = 商品架構試算分頁中的營收潛力 × 70%<br><br>
+        <strong>步驟 3｜總收入</strong><br>
+        總收入 = 商品收入 + 門票收入 + 其他收入<br><br>
+        <strong>步驟 4｜商品結構加權毛利</strong><br>
         加權毛利率 =（低毛利占比 × 低毛利率）+（中毛利占比 × 中毛利率）+（高毛利占比 × 高毛利率）<br><br>
-        <strong>步驟 4｜扣除抽成後的有效毛利率</strong><br>
+        <strong>步驟 5｜扣除抽成後的有效毛利率</strong><br>
         有效毛利率 = 加權毛利率 ×（1 − 商品抽成）<br><br>
-        <strong>步驟 5｜反推損益平衡商品營收</strong><br>
-        損益平衡商品營收 = 商品端需承擔成本 ÷ 有效毛利率<br><br>
-        <strong>步驟 6｜反推購買人數與人流</strong><br>
-        損益平衡購買人數 = 損益平衡商品營收 ÷ 客單價<br>
-        損益平衡總人流 = 損益平衡購買人數 ÷ 購買轉換率`;
+        <strong>步驟 6｜反推營運門檻</strong><br>
+        損益平衡商品營收 =（總投入成本 − 門票收入 − 其他收入）÷ 有效毛利率<br>
+        損益平衡總人流 =（損益平衡商品營收 ÷ 客單價）÷ 購買轉換率`;
     }
 
     function createProductRow(name = '', price = 0, cost = 0, unitPerSku = 0, skuCount = 0) {
@@ -1104,6 +1336,7 @@
       tr.querySelectorAll('input').forEach(input => {
         input.addEventListener('input', () => {
           refreshProductRowTotal(tr);
+          calculateProductStructure();
         });
       });
 
@@ -1140,6 +1373,153 @@
       ].forEach(item => createProductRow(...item));
       calculateProductStructure();
     }
+    function collectProductStructureData() {
+      return [...document.querySelectorAll('#productTableBody tr')].map(tr => ({
+        name: tr.children[0].querySelector('input').value.trim(),
+        price: Number(tr.children[1].querySelector('input').value || 0),
+        cost: Number(tr.children[2].querySelector('input').value || 0),
+        unitPerSku: Number(tr.children[3].querySelector('input').value || 0),
+        skuCount: Number(tr.children[4].querySelector('input').value || 0)
+      }));
+    }
+
+    function exportProductStructureData() {
+      const rows = collectProductStructureData();
+      if (rows.length === 0) {
+        alert('目前沒有可匯出的商品資料。');
+        return;
+      }
+
+      const payload = {
+        exportedAt: new Date().toISOString(),
+        version: '1.0',
+        rows
+      };
+
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const date = new Date();
+      const stamp = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}_${String(date.getHours()).padStart(2, '0')}${String(date.getMinutes()).padStart(2, '0')}`;
+      a.href = url;
+      a.download = `商品架構試算_${stamp}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function importProductStructureData(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = e => {
+        try {
+          const raw = JSON.parse(e.target.result);
+          const rows = Array.isArray(raw) ? raw : raw.rows;
+          if (!Array.isArray(rows)) throw new Error('Invalid format');
+
+          const body = document.getElementById('productTableBody');
+          body.innerHTML = '';
+          rows.forEach(item => {
+            createProductRow(
+              item.name || '',
+              Number(item.price || 0),
+              Number(item.cost || 0),
+              Number(item.unitPerSku || item.unitsPerSku || 0),
+              Number(item.skuCount || 0)
+            );
+          });
+          calculateProductStructure();
+          alert(`已匯入 ${rows.length} 筆商品資料。`);
+        } catch (error) {
+          alert('匯入失敗，請確認檔案格式為本工具匯出的 JSON。');
+          console.error(error);
+        } finally {
+          event.target.value = '';
+        }
+      };
+      reader.readAsText(file, 'utf-8');
+    }
+
+
+
+    let currentDetailRows = [];
+    let detailSortState = {
+      field: 'original',
+      direction: 'desc'
+    };
+
+    function getTierRank(tier) {
+      if (tier === '高毛利') return 3;
+      if (tier === '中毛利') return 2;
+      return 1;
+    }
+
+    function getSortedDetailRows(rows) {
+      const sorted = [...rows];
+      const { field, direction } = detailSortState;
+      if (!field || field === 'original') return sorted.sort((a, b) => a.originalIndex - b.originalIndex);
+
+      sorted.sort((a, b) => {
+        let aValue;
+        let bValue;
+
+        if (field === 'tier') {
+          aValue = getTierRank(a.tier);
+          bValue = getTierRank(b.tier);
+        } else if (field === 'name') {
+          aValue = a.name || '';
+          bValue = b.name || '';
+        } else {
+          aValue = a[field];
+          bValue = b[field];
+        }
+
+        if (typeof aValue === 'string' || typeof bValue === 'string') {
+          const compare = String(aValue).localeCompare(String(bValue), 'zh-Hant');
+          return direction === 'asc' ? compare : -compare;
+        }
+
+        if (aValue === bValue) {
+          return a.originalIndex - b.originalIndex;
+        }
+        return direction === 'asc' ? aValue - bValue : bValue - aValue;
+      });
+
+      return sorted;
+    }
+
+    function renderProductDetailTable() {
+      const rows = getSortedDetailRows(currentDetailRows);
+      document.getElementById('productDetailTable').innerHTML = rows.map(item => `
+        <tr>
+          <td>${item.name}</td>
+          <td>${money(item.price)}</td>
+          <td>${money(item.cost)}</td>
+          <td>${num(item.unitPerSku)}</td>
+          <td>${num(item.skuCount)}</td>
+          <td>${num(item.total)} 件</td>
+          <td>${money(item.revenue)}</td>
+          <td>${item.tier}</td>
+          <td>${pct(item.marginRate)}</td>
+        </tr>`).join('');
+    }
+
+    function applyDetailSort() {
+      detailSortState.field = document.getElementById('detailSortField').value;
+      detailSortState.direction = document.getElementById('detailSortDirection').value;
+      renderProductDetailTable();
+    }
+
+    function resetDetailSort() {
+      detailSortState.field = 'original';
+      detailSortState.direction = 'desc';
+      document.getElementById('detailSortField').value = 'original';
+      document.getElementById('detailSortDirection').value = 'desc';
+      renderProductDetailTable();
+    }
 
     function getMarginTier(marginRate) {
       if (marginRate < 40) return '低毛利';
@@ -1151,6 +1531,7 @@
       const rows = [...document.querySelectorAll('#productTableBody tr')];
       const detailRows = [];
       let totalRevenue = 0;
+      let totalCost = 0;
       let totalUnits = 0;
       let totalSkuCount = 0;
       let weightedPriceSum = 0;
@@ -1161,7 +1542,7 @@
         '高毛利': { rowCount: 0, skuCount: 0, units: 0, revenue: 0, weightedMarginSum: 0 }
       };
 
-      rows.forEach(tr => {
+      rows.forEach((tr, index) => {
         const name = tr.children[0].querySelector('input').value.trim() || '未命名商品';
         const price = Number(tr.children[1].querySelector('input').value || 0);
         const cost = Number(tr.children[2].querySelector('input').value || 0);
@@ -1179,11 +1560,12 @@
         buckets[tier].weightedMarginSum += revenue * marginRate;
 
         totalRevenue += revenue;
+        totalCost += Math.max(0, cost) * total;
         totalUnits += total;
         totalSkuCount += Math.max(0, skuCount);
         weightedPriceSum += price * total;
 
-        detailRows.push({ name, price, cost, unitPerSku, skuCount, total, revenue, tier, marginRate });
+        detailRows.push({ name, price, cost, unitPerSku, skuCount, total, revenue, tier, marginRate, originalIndex: index });
         refreshProductRowTotal(tr);
       });
 
@@ -1192,8 +1574,12 @@
       document.getElementById('productCountCard').textContent = `${num(detailRows.length)} 項`;
       document.getElementById('productUnitsCard').textContent = `${num(totalUnits)} 件`;
       document.getElementById('productSkuCard').textContent = `${num(totalSkuCount)} SKU`;
+      document.getElementById('productCostCard').textContent = money(totalCost);
       document.getElementById('productRevenueCard').textContent = money(totalRevenue);
       document.getElementById('productAvgPriceCard').textContent = money(avgPrice);
+
+      updateAutoProductRevenue(totalRevenue * 0.7);
+      calculateMainModel();
 
       const diagnosis = [];
       const highRatio = totalRevenue > 0 ? buckets['高毛利'].revenue / totalRevenue : 0;
@@ -1212,7 +1598,7 @@
         diagnosis.push('目前沒有任何商品資料，請先新增商品列。');
         badgeText = '尚未輸入商品';
       } else {
-        diagnosis.push(`目前共建立 ${num(detailRows.length)} 項商品、${num(totalSkuCount)} 個 SKU，總件數 ${num(totalUnits)} 件，營收潛力 ${money(totalRevenue)}。`);
+        diagnosis.push(`目前共建立 ${num(detailRows.length)} 項商品、${num(totalSkuCount)} 個 SKU，總件數 ${num(totalUnits)} 件，商品製作總成本 ${money(totalCost)}，營收潛力 ${money(totalRevenue)}。`);
         diagnosis.push(`商品毛利結構占比：低毛利 ${pct(lowRatio * 100)}、中毛利 ${pct(midRatio * 100)}、高毛利 ${pct(highRatio * 100)}。`);
         diagnosis.push(`三個位階加權平均毛利率：低毛利 ${pct(weightedLowMargin)}、中毛利 ${pct(weightedMidMargin)}、高毛利 ${pct(weightedHighMargin)}。`);
 
@@ -1233,6 +1619,16 @@
         if (lowRatio > 0.25) diagnosis.push('低毛利商品占比偏高，可能提升轉換，但也會拉低整體毛利效率。');
         if (avgPrice < 500) diagnosis.push('平均售價偏低，若主模型的目標客單較高，這組商品結構可能無法支撐。');
         if (totalUnits > 0 && detailRows.length > 0 && totalUnits / detailRows.length > 500) diagnosis.push('平均每項商品總件數偏大，建議檢查是否有壓庫存風險。');
+      }
+
+      const revenueStatus = getRevenueHealthStatus(currentMainModelData.totalRevenue, currentMainModelData.totalCost);
+      const signalDot = document.getElementById('productRevenueSignalDot');
+      const signalText = document.getElementById('productRevenueSignalText');
+      signalDot.className = `signal-dot ${revenueStatus.dotClass}`;
+      signalText.textContent = `${revenueStatus.label}（總收入 ${money(currentMainModelData.totalRevenue)} / 總投入成本 ${money(currentMainModelData.totalCost)}）`;
+
+      if (currentMainModelData.totalCost > 0) {
+        diagnosis.push(`依主模型目前計算，總收入為 ${money(currentMainModelData.totalRevenue)}，相對總投入成本的營收狀態為「${revenueStatus.label}」。`);
       }
 
       const badgeEl = document.getElementById('productSummaryBadge');
@@ -1262,21 +1658,13 @@
           </tr>`;
       }).join('');
 
-      document.getElementById('productDetailTable').innerHTML = detailRows.map(item => `
-        <tr>
-          <td>${item.name}</td>
-          <td>${money(item.price)}</td>
-          <td>${money(item.cost)}</td>
-          <td>${num(item.unitPerSku)}</td>
-          <td>${num(item.skuCount)}</td>
-          <td>${num(item.total)} 件</td>
-          <td>${money(item.revenue)}</td>
-          <td>${item.tier}</td>
-          <td>${pct(item.marginRate)}</td>
-        </tr>`).join('');
+      currentDetailRows = detailRows;
+      renderProductDetailTable();
     }
 
     document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('detailSortField').addEventListener('change', applyDetailSort);
+      document.getElementById('detailSortDirection').addEventListener('change', applyDetailSort);
       calculateMainModel();
       loadProductSample();
     });
