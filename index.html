@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>策展前評估模型｜完整版</title>
+  <title>策展前評估模型｜Model1</title>
   <style>
     :root {
       --bg: #f6f7fb;
@@ -55,10 +55,24 @@
       max-width: 1040px;
     }
 
+    .top-nav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+
     .tabs {
       display: flex;
       gap: 10px;
-      margin-bottom: 18px;
+      flex-wrap: wrap;
+    }
+
+    .global-actions {
+      display: flex;
+      gap: 10px;
       flex-wrap: wrap;
     }
 
@@ -420,6 +434,14 @@
       margin-bottom: 6px;
     }
 
+
+    .budget-warning {
+      color: var(--bad);
+      font-size: 12px;
+      font-weight: 800;
+      margin-left: 6px;
+    }
+
     .summary-item .v {
       font-size: 22px;
       font-weight: 800;
@@ -539,15 +561,22 @@
 <body>
   <div class="wrap">
     <div class="hero">
-      <h1>策展前評估模型｜完整版</h1>
+      <h1>策展前評估模型｜Model1</h1>
       <div class="subtitle">
         保留原本的策展損益平衡反推模型，並新增「商品架構試算」分頁。你可以在同一工具內進行商品架構編排、SKU 數量試算與商品結構回饋判讀。
       </div>
     </div>
 
-    <div class="tabs">
-      <button class="tab-btn active" data-tab="model" onclick="switchTab('model', this)">策展前評估模型</button>
-      <button class="tab-btn" data-tab="product" onclick="switchTab('product', this)">商品架構試算</button>
+    <div class="top-nav">
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="model" onclick="switchTab('model', this)">策展前評估模型</button>
+        <button class="tab-btn" data-tab="product" onclick="switchTab('product', this)">商品架構試算</button>
+      </div>
+      <div class="global-actions">
+        <button class="secondary" type="button" onclick="exportAllData()">匯出資料</button>
+        <button class="secondary" type="button" onclick="document.getElementById('globalImportInput').click()">匯入資料</button>
+        <input id="globalImportInput" type="file" accept="application/json,.json" onchange="importAllData(event)" style="display:none;" />
+      </div>
     </div>
 
     <div id="tab-model" class="tab-page active">
@@ -620,10 +649,17 @@
               <div class="group">
                 <div class="subsection-title">B. 收入結構</div>
 
-                <div class="field">
-                  <label for="productRevenue">商品收入（元）</label>
-                  <div class="desc">自動帶入商品架構試算的營收潛力 × 70%</div>
-                  <input id="productRevenue" class="readonly-input" type="number" value="0" min="0" readonly />
+                <div class="two-col">
+                  <div class="field">
+                    <label for="productSellThroughRate">商品售出率（%）</label>
+                    <div class="desc">商品收入 = 商品架構試算的營收潛力 × 此倍率</div>
+                    <input id="productSellThroughRate" type="number" value="70" min="0" max="100" step="1" />
+                  </div>
+                  <div class="field">
+                    <label for="productRevenue">商品收入（元）</label>
+                    <div class="desc">依商品營收潛力與販售倍率自動計算</div>
+                    <input id="productRevenue" class="readonly-input" type="number" value="0" min="0" readonly />
+                  </div>
                 </div>
 
                 <div class="field">
@@ -641,34 +677,35 @@
 
               <div class="group">
                 <div class="subsection-title">C. 商品毛利結構</div>
+                <div class="desc">此區自動連動「商品架構試算」分頁的商品架構回饋表，不需手動輸入。</div>
 
                 <div class="three-col">
                   <div class="field">
                     <label for="lowMix">低毛利商品占比（%）</label>
-                    <input id="lowMix" type="number" value="30" min="0" max="100" step="0.1" />
+                    <input id="lowMix" class="readonly-input" type="number" value="0" min="0" max="100" step="0.1" readonly />
                   </div>
                   <div class="field">
                     <label for="midMix">中毛利商品占比（%）</label>
-                    <input id="midMix" type="number" value="50" min="0" max="100" step="0.1" />
+                    <input id="midMix" class="readonly-input" type="number" value="0" min="0" max="100" step="0.1" readonly />
                   </div>
                   <div class="field">
                     <label for="highMix">高毛利商品占比（%）</label>
-                    <input id="highMix" type="number" value="20" min="0" max="100" step="0.1" />
+                    <input id="highMix" class="readonly-input" type="number" value="0" min="0" max="100" step="0.1" readonly />
                   </div>
                 </div>
 
                 <div class="three-col">
                   <div class="field">
                     <label for="lowMargin">低毛利商品毛利率（%）</label>
-                    <input id="lowMargin" type="number" value="30" min="0" max="100" step="0.1" />
+                    <input id="lowMargin" class="readonly-input" type="number" value="0" min="0" max="100" step="0.1" readonly />
                   </div>
                   <div class="field">
                     <label for="midMargin">中毛利商品毛利率（%）</label>
-                    <input id="midMargin" type="number" value="50" min="0" max="100" step="0.1" />
+                    <input id="midMargin" class="readonly-input" type="number" value="0" min="0" max="100" step="0.1" readonly />
                   </div>
                   <div class="field">
                     <label for="highMargin">高毛利商品毛利率（%）</label>
-                    <input id="highMargin" type="number" value="70" min="0" max="100" step="0.1" />
+                    <input id="highMargin" class="readonly-input" type="number" value="0" min="0" max="100" step="0.1" readonly />
                   </div>
                 </div>
 
@@ -845,11 +882,7 @@
 
             <div class="actions" style="margin-bottom: 14px;">
               <button class="primary" onclick="addProductRow()">新增商品</button>
-              <button class="secondary" onclick="loadProductSample()">載入範例</button>
               <button class="secondary" onclick="calculateProductStructure()">產出商品架構回饋表</button>
-              <button class="secondary" onclick="exportProductStructureData()">匯出資料</button>
-              <button class="secondary" type="button" onclick="document.getElementById('productImportInput').click()">匯入資料</button>
-              <input id="productImportInput" type="file" accept="application/json,.json" onchange="importProductStructureData(event)" style="display:none;" />
             </div>
 
             <div class="table-wrap">
@@ -893,7 +926,7 @@
                   <div class="v" id="productSkuCard">-</div>
                 </div>
                 <div class="summary-item">
-                  <div class="k">商品製作總成本</div>
+                  <div class="k">商品製作總成本 <span id="productBudgetWarning" class="budget-warning"></span></div>
                   <div class="v" id="productCostCard">-</div>
                 </div>
                 <div class="summary-item">
@@ -1018,11 +1051,48 @@
       surplus: 0
     };
 
-    function updateAutoProductRevenue(amount) {
+    let currentProductStructureCost = 0;
+
+    function getProductSellThroughRate() {
+      const el = document.getElementById('productSellThroughRate');
+      if (!el) return 70;
+      return clamp(0, Number(el.value || 0), 100);
+    }
+
+    function updateAutoProductRevenue(totalPotentialRevenue) {
       const el = document.getElementById('productRevenue');
       if (!el) return;
-      const safeAmount = Math.max(0, Math.round(amount || 0));
+      const sellThroughRate = getProductSellThroughRate();
+      const safeAmount = Math.max(0, Math.round((totalPotentialRevenue || 0) * sellThroughRate / 100));
       el.value = safeAmount;
+    }
+
+    function setAutoMarginStructure(lowRatio, midRatio, highRatio, lowMargin, midMargin, highMargin) {
+      const updates = {
+        lowMix: lowRatio * 100,
+        midMix: midRatio * 100,
+        highMix: highRatio * 100,
+        lowMargin,
+        midMargin,
+        highMargin
+      };
+
+      Object.entries(updates).forEach(([id, value]) => {
+        const el = document.getElementById(id);
+        if (el) el.value = Number(value || 0).toFixed(1);
+      });
+    }
+
+    function updateProductBudgetWarning() {
+      const warningEl = document.getElementById('productBudgetWarning');
+      if (!warningEl) return;
+
+      const productionBudget = val('production');
+      if (currentProductStructureCost > productionBudget && productionBudget >= 0) {
+        warningEl.textContent = '（超出預算）';
+      } else {
+        warningEl.textContent = '';
+      }
     }
 
     function getRevenueHealthStatus(totalRevenue, totalCost) {
@@ -1170,6 +1240,8 @@
         effectiveMargin,
         breakevenRevenue
       };
+
+      updateProductBudgetWarning();
 
       document.getElementById('totalCostCard').textContent = money(totalCost);
       document.getElementById('totalRevenueCard').textContent = money(totalRevenue);
@@ -1320,10 +1392,11 @@
         <strong>步驟 1｜總投入成本</strong><br>
         總投入成本 =（場租 + 授權金 + 硬體建置費 + 每日營運人力 × 檔期天數 + 商品製作費 + 行銷費 + 物流倉儲費 + 交通住宿費）×（1 + 風險緩衝）<br><br>
         <strong>步驟 2｜商品收入自動帶入</strong><br>
-        商品收入 = 商品架構試算分頁中的營收潛力 × 70%<br><br>
+        商品收入 = 商品架構試算分頁中的營收潛力 × 商品販售倍率<br><br>
         <strong>步驟 3｜總收入</strong><br>
         總收入 = 商品收入 + 門票收入 + 其他收入<br><br>
         <strong>步驟 4｜商品結構加權毛利</strong><br>
+        低 / 中 / 高毛利商品占比與毛利率會由商品架構試算分頁的商品架構回饋表自動帶入。<br>
         加權毛利率 =（低毛利占比 × 低毛利率）+（中毛利占比 × 中毛利率）+（高毛利占比 × 高毛利率）<br><br>
         <strong>步驟 5｜扣除抽成後的有效毛利率</strong><br>
         有效毛利率 = 加權毛利率 ×（1 − 商品抽成）<br><br>
@@ -1395,6 +1468,103 @@
         unitPerSku: Number(tr.children[3].querySelector('input').value || 0),
         skuCount: Number(tr.children[4].querySelector('input').value || 0)
       }));
+    }
+
+
+    const mainModelFieldIds = [
+      'rent', 'license', 'build', 'staffDaily', 'days', 'production',
+      'marketing', 'logistics', 'travel', 'productSellThroughRate',
+      'ticketRevenue', 'otherRevenue', 'lowMix', 'midMix', 'highMix',
+      'lowMargin', 'midMargin', 'highMargin', 'commission', 'conv', 'atv', 'risk'
+    ];
+
+    function collectMainModelData() {
+      const data = {};
+      mainModelFieldIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) data[id] = el.value;
+      });
+      return data;
+    }
+
+    function applyMainModelData(data = {}) {
+      mainModelFieldIds.forEach(id => {
+        if (Object.prototype.hasOwnProperty.call(data, id)) {
+          const el = document.getElementById(id);
+          if (el) el.value = data[id];
+        }
+      });
+    }
+
+    function exportAllData() {
+      const payload = {
+        exportedAt: new Date().toISOString(),
+        version: '2.0',
+        app: 'exhibition_model_full',
+        mainModel: collectMainModelData(),
+        productRows: collectProductStructureData(),
+        detailSortState
+      };
+
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      const date = new Date();
+      const stamp = `${date.getFullYear()}${String(date.getMonth() + 1).padStart(2, '0')}${String(date.getDate()).padStart(2, '0')}_${String(date.getHours()).padStart(2, '0')}${String(date.getMinutes()).padStart(2, '0')}`;
+      a.href = url;
+      a.download = `策展評估模型_${stamp}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    function importAllData(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = e => {
+        try {
+          const raw = JSON.parse(e.target.result);
+          const mainModel = raw.mainModel || raw.model || {};
+          const productRows = raw.productRows || raw.rows || (Array.isArray(raw) ? raw : []);
+
+          if (!Array.isArray(productRows)) throw new Error('Invalid product rows');
+
+          applyMainModelData(mainModel);
+
+          const body = document.getElementById('productTableBody');
+          body.innerHTML = '';
+          productRows.forEach(item => {
+            createProductRow(
+              item.name || '',
+              Number(item.price || 0),
+              Number(item.cost || 0),
+              Number(item.unitPerSku || item.unitsPerSku || 0),
+              Number(item.skuCount || 0)
+            );
+          });
+
+          if (raw.detailSortState) {
+            detailSortState = raw.detailSortState;
+            const sortField = document.getElementById('detailSortField');
+            const sortDirection = document.getElementById('detailSortDirection');
+            if (sortField && detailSortState.field) sortField.value = detailSortState.field;
+            if (sortDirection && detailSortState.direction) sortDirection.value = detailSortState.direction;
+          }
+
+          calculateProductStructure();
+          calculateMainModel();
+          alert(`已匯入主模型資料與 ${productRows.length} 筆商品資料。`);
+        } catch (error) {
+          alert('匯入失敗，請確認檔案格式為本工具匯出的 JSON。');
+          console.error(error);
+        } finally {
+          event.target.value = '';
+        }
+      };
+      reader.readAsText(file, 'utf-8');
     }
 
     function exportProductStructureData() {
@@ -1592,9 +1762,6 @@
       document.getElementById('productRevenueCard').textContent = money(totalRevenue);
       document.getElementById('productAvgPriceCard').textContent = money(avgPrice);
 
-      updateAutoProductRevenue(totalRevenue * 0.7);
-      calculateMainModel();
-
       const diagnosis = [];
       const highRatio = totalRevenue > 0 ? buckets['高毛利'].revenue / totalRevenue : 0;
       const midRatio = totalRevenue > 0 ? buckets['中毛利'].revenue / totalRevenue : 0;
@@ -1603,6 +1770,12 @@
       const weightedLowMargin = buckets['低毛利'].revenue > 0 ? buckets['低毛利'].weightedMarginSum / buckets['低毛利'].revenue : 0;
       const weightedMidMargin = buckets['中毛利'].revenue > 0 ? buckets['中毛利'].weightedMarginSum / buckets['中毛利'].revenue : 0;
       const weightedHighMargin = buckets['高毛利'].revenue > 0 ? buckets['高毛利'].weightedMarginSum / buckets['高毛利'].revenue : 0;
+
+      currentProductStructureCost = totalCost;
+      updateProductBudgetWarning();
+      setAutoMarginStructure(lowRatio, midRatio, highRatio, weightedLowMargin, weightedMidMargin, weightedHighMargin);
+      updateAutoProductRevenue(totalRevenue);
+      calculateMainModel();
 
       let badgeText = '可持續補資料';
       let badgeClass = '#2457d6';
@@ -1679,6 +1852,19 @@
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('detailSortField').addEventListener('change', applyDetailSort);
       document.getElementById('detailSortDirection').addEventListener('change', applyDetailSort);
+
+      const sellThroughEl = document.getElementById('productSellThroughRate');
+      if (sellThroughEl) {
+        sellThroughEl.addEventListener('input', () => {
+          calculateProductStructure();
+        });
+      }
+
+      ['rent', 'license', 'build', 'staffDaily', 'days', 'production', 'marketing', 'logistics', 'travel', 'ticketRevenue', 'otherRevenue', 'lowMix', 'midMix', 'highMix', 'lowMargin', 'midMargin', 'highMargin', 'commission', 'conv', 'atv', 'risk'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', calculateMainModel);
+      });
+
       calculateMainModel();
       loadProductSample();
     });
