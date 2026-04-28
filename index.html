@@ -968,7 +968,7 @@
             </div>
 
             <div class="mini-note" style="margin-top: 10px;">
-              這個分頁會依各商品的毛利率自動歸類為低毛利、中毛利、高毛利，並統計商品毛利結構占比與各位階加權平均毛利率。
+              這個分頁會依各商品扣除商品 / 贈品抽成後的毛利率自動歸類為低毛利、中毛利、高毛利，並統計商品毛利結構占比與各位階加權平均毛利率。
             </div>
           </div>
         </div>
@@ -1065,7 +1065,7 @@
                   <option value="marginRate">毛利率</option>
                   <option value="revenue">營收潛力</option>
                   <option value="licenseFee">授權金</option>
-                  <option value="cost">成本</option>
+                  <option value="costWithLicense">成本(含授權金)</option>
                   <option value="skuCount">SKU數</option>
                   <option value="total">總件數</option>
                   <option value="unitPerSku">單SKU數量</option>
@@ -1091,7 +1091,7 @@
                     <th>商品名稱</th>
                     <th>標記</th>
                     <th>售價</th>
-                    <th>成本</th>
+                    <th>成本(含授權金)</th>
                     <th>單SKU數量</th>
                     <th>SKU數</th>
                     <th>總件數</th>
@@ -1143,14 +1143,15 @@
 
       rows.forEach(tr => {
         const name = tr.children[0]?.querySelector('input')?.value.trim() || '';
+        const tag = tr.children[1]?.querySelector('select')?.value || '商品';
         const price = Number(tr.children[2]?.querySelector('input')?.value || 0);
         const cost = Number(tr.children[3]?.querySelector('input')?.value || 0);
         const unitPerSku = Number(tr.children[4]?.querySelector('input')?.value || 0);
         const skuCount = Number(tr.children[5]?.querySelector('input')?.value || 0);
-        const total = Math.max(0, unitPerSku) * Math.max(0, skuCount);
-        const revenue = Math.max(0, price) * total;
-        const marginRate = price > 0 ? Math.max(0, (price - Math.max(0, cost)) / price * 100) : 0;
-        const tier = getMarginTier(marginRate);
+        const metrics = getLicenseAwareProductMetrics({ tag, price, cost, unitPerSku, skuCount });
+        const total = metrics.total;
+        const revenue = metrics.revenue;
+        const tier = metrics.tier;
 
         totalRevenue += revenue;
         if (tier === '低毛利') lowRevenue += revenue;
@@ -1281,6 +1282,42 @@
     function getGiftCommissionRate() {
       const el = document.getElementById('giftCommissionRate');
       return clamp(0, Number(el ? el.value || 0 : 0), 100);
+    }
+
+    function getLicenseAwareProductMetrics({ tag, price, cost, unitPerSku, skuCount }) {
+      const safeTag = tag === '贈品' ? '贈品' : '商品';
+      const safePrice = Math.max(0, Number(price || 0));
+      const safeCost = Math.max(0, Number(cost || 0));
+      const safeUnitPerSku = Math.max(0, Number(unitPerSku || 0));
+      const safeSkuCount = Math.max(0, Number(skuCount || 0));
+      const total = safeUnitPerSku * safeSkuCount;
+      const revenue = safePrice * total;
+      const productCost = safeCost * total;
+      const commissionRate = safeTag === '贈品' ? getGiftCommissionRate() : getProductCommissionRate();
+      const taxMultiplier = 1.05;
+
+      // 摘要區的「授權金加總」維持原本未稅抽成金額；
+      // 明細成本與毛利率則使用含 5% 稅的授權金成本。
+      const baseLicenseFee = safeTag === '贈品'
+        ? productCost * commissionRate / 100
+        : revenue * commissionRate / 100;
+      const taxedLicenseCost = baseLicenseFee * taxMultiplier;
+      const totalCostWithLicense = productCost + taxedLicenseCost;
+      const costWithLicense = total > 0 ? totalCostWithLicense / total : safeCost;
+      const marginRate = revenue > 0 ? (revenue - totalCostWithLicense) / revenue * 100 : 0;
+      const tier = getMarginTier(marginRate);
+
+      return {
+        total,
+        revenue,
+        productCost,
+        baseLicenseFee,
+        taxedLicenseCost,
+        totalCostWithLicense,
+        costWithLicense,
+        marginRate,
+        tier
+      };
     }
 
     function syncMarginFieldsFromBuckets(buckets, totalRevenue) {
@@ -1415,7 +1452,10 @@
       const risk = Math.max(0, val('risk'));
 
       const staffingCost = staffDaily * days;
-      const fixedCost = rent + actualLicenseFee + build + staffingCost + production + marketing + logistics + travel;
+      // 作法 A：商品 / 贈品抽成已作為商品變動成本納入毛利率，
+      // 因此主模型總投入成本不再把商品授權金重複計入，避免 double count。
+      // 圖像使用費授權金仍屬專案固定成本，保留在總投入成本中。
+      const fixedCost = rent + imageLicenseFee + build + staffingCost + production + marketing + logistics + travel;
       const totalCost = fixedCost * (1 + risk / 100);
 
       const externalRevenue = ticketRevenue + otherRevenue;
@@ -1499,7 +1539,7 @@
       document.getElementById('scoreMeter').style.width = `${score}%`;
 
       const diagnosis = [];
-      diagnosis.push(`總投入成本為 ${money(totalCost)}，其中已包含實際授權金合計 ${money(actualLicenseFee)}（商品授權金 ${money(productLicenseFee)} + 圖像使用費 ${money(imageLicenseFee)}）、商品製作費、行銷費、物流倉儲費、交通住宿費與風險緩衝。`);
+      diagnosis.push(`總投入成本為 ${money(totalCost)}，其中已包含圖像使用費授權金 ${money(imageLicenseFee)}、商品製作費、行銷費、物流倉儲費、交通住宿費與風險緩衝；商品授權金 ${money(productLicenseFee)} 已納入商品毛利率，不再於總投入成本重複扣除。`);
       diagnosis.push(`總收入目前為 ${money(totalRevenue)}，其中商品收入 ${money(productRevenue)}、門票收入 ${money(ticketRevenue)}、其他收入 ${money(otherRevenue)}。`);
       diagnosis.push(`在轉換率 ${pct(conv)} 與客單 ${money(atv)} 的假設下，損益平衡總人流需達 ${num(trafficNeeded)} 人，平均每日 ${num(dailyTrafficNeeded)} 人。`);
 
@@ -1612,8 +1652,8 @@
 
       document.getElementById('formulaText').innerHTML = `
         <strong>步驟 1｜總投入成本</strong><br>
-        總投入成本 =（場租 + 實際授權金合計 + 硬體建置費 + 每日營運人力 × 檔期天數 + 商品製作費 + 行銷費 + 物流倉儲費 + 交通住宿費）×（1 + 風險緩衝）<br>
-        商品授權金 = 商品架構試算分頁的授權金加總<br>
+        總投入成本 =（場租 + 圖像使用費授權金 + 硬體建置費 + 每日營運人力 × 檔期天數 + 商品製作費 + 行銷費 + 物流倉儲費 + 交通住宿費）×（1 + 風險緩衝）<br>
+        商品授權金 = 商品架構試算分頁的授權金加總；商品授權金已作為商品變動成本納入毛利率，不再重複計入總投入成本。<br>
         實際授權金合計 = 商品授權金 + 圖像使用費授權金<br>
         成案判斷 = 實際授權金合計 ≥ IP方成案授權金門檻；門檻本身不直接計入總投入成本。<br><br>
         <strong>步驟 2｜商品收入自動帶入</strong><br>
@@ -1621,10 +1661,12 @@
         <strong>步驟 3｜總收入</strong><br>
         總收入 = 商品收入 + 門票收入 + 其他收入<br><br>
         <strong>步驟 4｜商品結構加權毛利</strong><br>
+        商品毛利率 =（營收潛力 − 商品製作成本 − 含稅 IP 抽成成本）÷ 營收潛力。<br>
+        商品標記為「商品」時，含稅 IP 抽成成本 = 售價 × 總件數 × 商品抽成率 × 1.05；標記為「贈品」時，含稅 IP 抽成成本 = 成本 × 總件數 × 贈品抽成率 × 1.05。<br>
         商品毛利結構會由商品架構試算分頁自動回填：低 / 中 / 高毛利營收占比與加權平均毛利率。<br>
         加權毛利率 =（低毛利占比 × 低毛利率）+（中毛利占比 × 中毛利率）+（高毛利占比 × 高毛利率）<br><br>
         <strong>步驟 5｜商品毛利結構</strong><br>
-        加權毛利率會自動由商品架構試算分頁回填；主模型不再另外輸入商品抽成。<br><br>
+        加權毛利率會自動由商品架構試算分頁回填；商品 / 贈品抽成已在商品明細毛利率中扣除。<br><br>
         <strong>步驟 6｜反推營運門檻</strong><br>
         損益平衡商品營收 =（總投入成本 − 門票收入 − 其他收入）÷ 加權毛利率<br>
         損益平衡總人流 =（損益平衡商品營收 ÷ 客單價）÷ 購買轉換率`;
@@ -1931,7 +1973,7 @@
           <td>${item.name}</td>
           <td>${item.tag}</td>
           <td>${money(item.price)}</td>
-          <td>${money(item.cost)}</td>
+          <td>${money(item.costWithLicense)}</td>
           <td>${num(item.unitPerSku)}</td>
           <td>${num(item.skuCount)}</td>
           <td>${num(item.total)} 件</td>
@@ -1987,13 +2029,15 @@
         const cost = Number(tr.children[3].querySelector('input').value || 0);
         const unitPerSku = Number(tr.children[4].querySelector('input').value || 0);
         const skuCount = Number(tr.children[5].querySelector('input').value || 0);
-        const total = Math.max(0, unitPerSku) * Math.max(0, skuCount);
-        const revenue = Math.max(0, price) * total;
-        const itemLicenseFee = tag === '贈品'
-          ? Math.max(0, cost) * total * giftCommissionRate / 100
-          : Math.max(0, price) * total * productCommissionRate / 100;
-        const marginRate = price > 0 ? Math.max(0, (price - Math.max(0, cost)) / price * 100) : 0;
-        const tier = getMarginTier(marginRate);
+        const metrics = getLicenseAwareProductMetrics({ tag, price, cost, unitPerSku, skuCount });
+        const total = metrics.total;
+        const revenue = metrics.revenue;
+        const productCost = metrics.productCost;
+        const baseLicenseFee = metrics.baseLicenseFee;
+        const costWithLicense = metrics.costWithLicense;
+        const totalCostWithLicense = metrics.totalCostWithLicense;
+        const marginRate = metrics.marginRate;
+        const tier = metrics.tier;
 
         buckets[tier].rowCount += 1;
         buckets[tier].skuCount += Math.max(0, skuCount);
@@ -2002,13 +2046,13 @@
         buckets[tier].weightedMarginSum += revenue * marginRate;
 
         totalRevenue += revenue;
-        totalCost += Math.max(0, cost) * total;
+        totalCost += productCost;
         totalUnits += total;
         totalSkuCount += Math.max(0, skuCount);
-        totalLicenseFee += itemLicenseFee;
+        totalLicenseFee += baseLicenseFee;
         weightedPriceSum += price * total;
 
-        detailRows.push({ name, tag, price, cost, unitPerSku, skuCount, total, revenue, licenseFee: itemLicenseFee, tier, marginRate, originalIndex: index });
+        detailRows.push({ name, tag, price, cost, costWithLicense, productCost, totalCostWithLicense, unitPerSku, skuCount, total, revenue, licenseFee: baseLicenseFee, tier, marginRate, originalIndex: index });
         refreshProductRowTotal(tr);
       });
 
