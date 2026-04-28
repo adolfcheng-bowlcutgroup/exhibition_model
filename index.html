@@ -152,6 +152,21 @@
       background: #fcfdff;
     }
 
+
+    .license-subgroup {
+      border: 1px solid #bfd3ff;
+      background: #f7faff;
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+
+    .license-subgroup-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: #20407a;
+      margin-bottom: 12px;
+    }
     .field {
       display: grid;
       gap: 8px;
@@ -620,6 +635,8 @@
                   <input id="rent" type="number" value="300000" min="0" />
                 </div>
 
+                <div class="license-subgroup">
+                  <div class="license-subgroup-title">授權金結構</div>
                 <div class="field">
                   <label for="license">IP方成案授權金門檻（元）</label>
                   <div class="desc">IP 方要求的最低授權金合計門檻；此欄只作為成案判斷，不直接計入總投入成本</div>
@@ -642,6 +659,7 @@
                   <label for="actualLicenseFee">實際授權金合計（元）</label>
                   <div class="desc">商品授權金 + 圖像使用費授權金；此金額會計入總投入成本</div>
                   <input id="actualLicenseFee" class="readonly-input" type="number" value="0" min="0" readonly />
+                </div>
                 </div>
 
                 <div class="field">
@@ -752,11 +770,6 @@
 
                 <div class="desc">以上 6 個欄位會自動連動「商品架構試算」分頁的商品架構回饋表，不需手動輸入。</div>
 
-                <div class="field">
-                  <label for="commission">商品抽成（%）</label>
-                  <div class="desc">商場抽成、通路分潤、IP 分帳等，會直接壓縮實際可留存毛利</div>
-                  <input id="commission" type="number" value="20" min="0" max="100" step="0.1" />
-                </div>
               </div>
 
               <div class="group">
@@ -1201,7 +1214,6 @@
         document.getElementById('lowMargin').value = 28;
         document.getElementById('midMargin').value = 46;
         document.getElementById('highMargin').value = 65;
-        document.getElementById('commission').value = 25;
       }
       if (type === 'base') {
         document.getElementById('conv').value = 18;
@@ -1213,7 +1225,6 @@
         document.getElementById('lowMargin').value = 30;
         document.getElementById('midMargin').value = 50;
         document.getElementById('highMargin').value = 70;
-        document.getElementById('commission').value = 20;
       }
       if (type === 'optimistic') {
         document.getElementById('conv').value = 24;
@@ -1225,7 +1236,6 @@
         document.getElementById('lowMargin').value = 32;
         document.getElementById('midMargin').value = 54;
         document.getElementById('highMargin').value = 75;
-        document.getElementById('commission').value = 15;
       }
       calculateMainModel();
     }
@@ -1274,7 +1284,7 @@
       const lowMargin = clamp(0, val('lowMargin'), 100);
       const midMargin = clamp(0, val('midMargin'), 100);
       const highMargin = clamp(0, val('highMargin'), 100);
-      const commission = clamp(0, val('commission'), 100);
+      const commission = 0;
       const conv = clamp(0.1, val('conv'), 100);
       const atv = Math.max(1, val('atv'));
       const risk = Math.max(0, val('risk'));
@@ -1344,7 +1354,6 @@
       score -= Math.min(38, dailyTrafficNeeded / 18);
       score -= Math.min(18, breakevenRevenue / 300000);
       score -= Math.min(12, risk / 2.5);
-      score -= Math.min(12, commission / 2.2);
       score += Math.min(12, Math.max(0, effectiveMargin - 40) * 0.6);
       score += Math.min(8, Math.max(0, conv - 15) * 0.9);
       score += Math.min(8, Math.max(0, atv - 700) / 80);
@@ -1494,10 +1503,10 @@
         <strong>步驟 4｜商品結構加權毛利</strong><br>
         商品毛利結構會由商品架構試算分頁自動回填：低 / 中 / 高毛利營收占比與加權平均毛利率。<br>
         加權毛利率 =（低毛利占比 × 低毛利率）+（中毛利占比 × 中毛利率）+（高毛利占比 × 高毛利率）<br><br>
-        <strong>步驟 5｜扣除抽成後的有效毛利率</strong><br>
-        有效毛利率 = 加權毛利率 ×（1 − 商品抽成）<br><br>
+        <strong>步驟 5｜商品毛利結構</strong><br>
+        加權毛利率會自動由商品架構試算分頁回填；主模型不再另外輸入商品抽成。<br><br>
         <strong>步驟 6｜反推營運門檻</strong><br>
-        損益平衡商品營收 =（總投入成本 − 門票收入 − 其他收入）÷ 有效毛利率<br>
+        損益平衡商品營收 =（總投入成本 − 門票收入 − 其他收入）÷ 加權毛利率<br>
         損益平衡總人流 =（損益平衡商品營收 ÷ 客單價）÷ 購買轉換率`;
     }
 
@@ -1593,7 +1602,7 @@
       'marketing', 'logistics', 'travel', 'productSellThroughRate',
       'productCommissionRate', 'giftCommissionRate',
       'ticketRevenue', 'otherRevenue', 'lowMix', 'midMix', 'highMix',
-      'lowMargin', 'midMargin', 'highMargin', 'commission', 'conv', 'atv', 'risk'
+      'lowMargin', 'midMargin', 'highMargin', 'conv', 'atv', 'risk'
     ];
 
     function collectMainModelData() {
@@ -1996,7 +2005,7 @@
         });
       }
 
-      ['rent', 'license', 'imageLicenseFee', 'build', 'staffDaily', 'days', 'production', 'marketing', 'logistics', 'travel', 'ticketRevenue', 'otherRevenue', 'commission', 'conv', 'atv', 'risk'].forEach(id => {
+      ['rent', 'license', 'imageLicenseFee', 'build', 'staffDaily', 'days', 'production', 'marketing', 'logistics', 'travel', 'ticketRevenue', 'otherRevenue', 'conv', 'atv', 'risk'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('input', () => {
           calculateMainModel();
