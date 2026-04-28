@@ -621,9 +621,27 @@
                 </div>
 
                 <div class="field">
-                  <label for="license">成案授權金（元）</label>
-                  <div class="desc">IP 方要求的最低成案授權金門檻；實際授權成本由商品架構試算的授權金加總帶入判斷</div>
+                  <label for="license">IP方成案授權金門檻（元）</label>
+                  <div class="desc">IP 方要求的最低授權金合計門檻；此欄只作為成案判斷，不直接計入總投入成本</div>
                   <input id="license" type="number" value="150000" min="0" />
+                </div>
+
+                <div class="field">
+                  <label for="productLicenseFee">商品授權金（元）</label>
+                  <div class="desc">自動帶入商品架構試算的授權金加總</div>
+                  <input id="productLicenseFee" class="readonly-input" type="number" value="0" min="0" readonly />
+                </div>
+
+                <div class="field">
+                  <label for="imageLicenseFee">圖像使用費授權金（元）</label>
+                  <div class="desc">IP 方收取的固定圖像使用費或素材授權費</div>
+                  <input id="imageLicenseFee" type="number" value="0" min="0" />
+                </div>
+
+                <div class="field">
+                  <label for="actualLicenseFee">實際授權金合計（元）</label>
+                  <div class="desc">商品授權金 + 圖像使用費授權金；此金額會計入總投入成本</div>
+                  <input id="actualLicenseFee" class="readonly-input" type="number" value="0" min="0" readonly />
                 </div>
 
                 <div class="field">
@@ -1092,6 +1110,8 @@
       otherRevenue: 0,
       surplus: 0,
       caseLicenseFee: 0,
+      productLicenseFee: 0,
+      imageLicenseFee: 0,
       actualLicenseFee: 0,
       productLicenseTotal: 0,
       licensePassed: false
@@ -1228,8 +1248,14 @@
     function calculateMainModel() {
       const rent = val('rent');
       const caseLicenseFee = val('license');
-      const licensePassed = caseLicenseFee <= 0 || currentProductLicenseTotal >= caseLicenseFee;
-      const actualLicenseFee = licensePassed ? currentProductLicenseTotal : caseLicenseFee;
+      const productLicenseFee = currentProductLicenseTotal;
+      const imageLicenseFee = val('imageLicenseFee');
+      const actualLicenseFee = productLicenseFee + imageLicenseFee;
+      const licensePassed = caseLicenseFee <= 0 || actualLicenseFee >= caseLicenseFee;
+      const productLicenseFeeEl = document.getElementById('productLicenseFee');
+      const actualLicenseFeeEl = document.getElementById('actualLicenseFee');
+      if (productLicenseFeeEl) productLicenseFeeEl.value = Math.round(productLicenseFee);
+      if (actualLicenseFeeEl) actualLicenseFeeEl.value = Math.round(actualLicenseFee);
       const build = val('build');
       const staffDaily = val('staffDaily');
       const days = Math.max(1, val('days'));
@@ -1291,6 +1317,8 @@
         effectiveMargin,
         breakevenRevenue,
         caseLicenseFee,
+        productLicenseFee,
+        imageLicenseFee,
         actualLicenseFee,
         productLicenseTotal: currentProductLicenseTotal,
         licensePassed
@@ -1342,7 +1370,7 @@
       document.getElementById('scoreMeter').style.width = `${score}%`;
 
       const diagnosis = [];
-      diagnosis.push(`總投入成本為 ${money(totalCost)}，其中已包含實際授權成本 ${money(actualLicenseFee)}、商品製作費、行銷費、物流倉儲費、交通住宿費與風險緩衝。`);
+      diagnosis.push(`總投入成本為 ${money(totalCost)}，其中已包含實際授權金合計 ${money(actualLicenseFee)}（商品授權金 ${money(productLicenseFee)} + 圖像使用費 ${money(imageLicenseFee)}）、商品製作費、行銷費、物流倉儲費、交通住宿費與風險緩衝。`);
       diagnosis.push(`總收入目前為 ${money(totalRevenue)}，其中商品收入 ${money(productRevenue)}、門票收入 ${money(ticketRevenue)}、其他收入 ${money(otherRevenue)}。`);
       diagnosis.push(`在轉換率 ${pct(conv)} 與客單 ${money(atv)} 的假設下，損益平衡總人流需達 ${num(trafficNeeded)} 人，平均每日 ${num(dailyTrafficNeeded)} 人。`);
 
@@ -1377,7 +1405,7 @@
         badge.textContent = '授權金未達標';
         document.getElementById('scoreValue').textContent = '不成案';
         document.getElementById('scoreMeter').style.width = '0%';
-        document.getElementById('diagnosisList').innerHTML = '<li>本案因授權金未達成案授權金之金額，不會成案。</li>';
+        document.getElementById('diagnosisList').innerHTML = '<li>本案因實際授權金合計未達 IP 方成案授權金門檻，不會成案。</li>';
       } else {
         document.getElementById('diagnosisList').innerHTML = diagnosis.map(item => `<li>${item}</li>`).join('');
       }
@@ -1455,8 +1483,10 @@
 
       document.getElementById('formulaText').innerHTML = `
         <strong>步驟 1｜總投入成本</strong><br>
-        總投入成本 =（場租 + 實際授權成本 + 硬體建置費 + 每日營運人力 × 檔期天數 + 商品製作費 + 行銷費 + 物流倉儲費 + 交通住宿費）×（1 + 風險緩衝）<br>
-        實際授權成本 = 若商品架構試算之授權金加總 ≥ 成案授權金，則採授權金加總；否則視為未達成案門檻。<br><br>
+        總投入成本 =（場租 + 實際授權金合計 + 硬體建置費 + 每日營運人力 × 檔期天數 + 商品製作費 + 行銷費 + 物流倉儲費 + 交通住宿費）×（1 + 風險緩衝）<br>
+        商品授權金 = 商品架構試算分頁的授權金加總<br>
+        實際授權金合計 = 商品授權金 + 圖像使用費授權金<br>
+        成案判斷 = 實際授權金合計 ≥ IP方成案授權金門檻；門檻本身不直接計入總投入成本。<br><br>
         <strong>步驟 2｜商品收入自動帶入</strong><br>
         商品收入 = 商品架構試算分頁中的營收潛力 × 商品販售倍率<br><br>
         <strong>步驟 3｜總收入</strong><br>
@@ -1559,7 +1589,7 @@
 
 
     const mainModelFieldIds = [
-      'rent', 'license', 'build', 'staffDaily', 'days', 'production',
+      'rent', 'license', 'imageLicenseFee', 'build', 'staffDaily', 'days', 'production',
       'marketing', 'logistics', 'travel', 'productSellThroughRate',
       'productCommissionRate', 'giftCommissionRate',
       'ticketRevenue', 'otherRevenue', 'lowMix', 'midMix', 'highMix',
@@ -1966,7 +1996,7 @@
         });
       }
 
-      ['rent', 'license', 'build', 'staffDaily', 'days', 'production', 'marketing', 'logistics', 'travel', 'ticketRevenue', 'otherRevenue', 'commission', 'conv', 'atv', 'risk'].forEach(id => {
+      ['rent', 'license', 'imageLicenseFee', 'build', 'staffDaily', 'days', 'production', 'marketing', 'logistics', 'travel', 'ticketRevenue', 'otherRevenue', 'commission', 'conv', 'atv', 'risk'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.addEventListener('input', () => {
           calculateMainModel();
