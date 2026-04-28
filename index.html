@@ -1134,6 +1134,131 @@
     let currentProductLicenseTotal = 0;
     let currentProductCostTotal = 0;
 
+    function getCurrentProductScoreStats() {
+      const rows = [...document.querySelectorAll('#productTableBody tr')];
+      let totalRevenue = 0;
+      let lowRevenue = 0;
+      let highRevenue = 0;
+      let validRows = 0;
+
+      rows.forEach(tr => {
+        const name = tr.children[0]?.querySelector('input')?.value.trim() || '';
+        const price = Number(tr.children[2]?.querySelector('input')?.value || 0);
+        const cost = Number(tr.children[3]?.querySelector('input')?.value || 0);
+        const unitPerSku = Number(tr.children[4]?.querySelector('input')?.value || 0);
+        const skuCount = Number(tr.children[5]?.querySelector('input')?.value || 0);
+        const total = Math.max(0, unitPerSku) * Math.max(0, skuCount);
+        const revenue = Math.max(0, price) * total;
+        const marginRate = price > 0 ? Math.max(0, (price - Math.max(0, cost)) / price * 100) : 0;
+        const tier = getMarginTier(marginRate);
+
+        totalRevenue += revenue;
+        if (tier === '低毛利') lowRevenue += revenue;
+        if (tier === '高毛利') highRevenue += revenue;
+        if (name && price > 0 && cost > 0 && unitPerSku > 0 && skuCount > 0) validRows += 1;
+      });
+
+      return {
+        rowCount: rows.length,
+        validRows,
+        completeness: rows.length > 0 ? validRows / rows.length : 0,
+        totalRevenue,
+        lowRatio: totalRevenue > 0 ? lowRevenue / totalRevenue : 0,
+        highRatio: totalRevenue > 0 ? highRevenue / totalRevenue : 0,
+        totalProductCost: currentProductCostTotal || 0
+      };
+    }
+
+    function scoreInvestmentModel(inputs) {
+      if (!inputs.licensePassed) {
+        return { total: 0, status: '授權金未達標', badgeClass: 'bad' };
+      }
+
+      const totalCost = inputs.totalCost;
+      const totalRevenue = inputs.totalRevenue;
+      const productRevenue = inputs.productRevenue;
+      const dailyGapTraffic = inputs.dailyGapTraffic;
+      const conv = inputs.conv;
+      const atv = inputs.atv;
+      const risk = inputs.risk;
+      const productionBudget = inputs.productionBudget;
+      const productStats = inputs.productStats;
+
+      const surplusRatio = totalCost > 0 ? (totalRevenue - totalCost) / totalCost : 0;
+      let a1 = 0;
+      if (surplusRatio >= 0.20) a1 = 30;
+      else if (surplusRatio >= 0.10) a1 = 25;
+      else if (surplusRatio >= 0.05) a1 = 18;
+      else if (surplusRatio >= 0) a1 = 10;
+
+      const productDependence = totalRevenue > 0 ? productRevenue / totalRevenue : 1;
+      let a2 = 2;
+      if (productDependence < 0.50) a2 = 10;
+      else if (productDependence < 0.75) a2 = 8;
+      else if (productDependence < 0.90) a2 = 5;
+
+      const highRatio = productStats.highRatio || 0;
+      let b1 = 3;
+      if (highRatio >= 0.50) b1 = 15;
+      else if (highRatio >= 0.40) b1 = 11;
+      else if (highRatio >= 0.30) b1 = 7;
+
+      const lowRatio = productStats.lowRatio || 0;
+      let b2 = 8;
+      if (lowRatio > 0.35) b2 = 0;
+      else if (lowRatio > 0.25) b2 = 3;
+      else if (lowRatio > 0.15) b2 = 6;
+
+      const budgetDeltaRatio = productionBudget > 0 ? (productionBudget - productStats.totalProductCost) / productionBudget : 0;
+      let b3 = 0;
+      if (productionBudget <= 0) b3 = 0;
+      else if (budgetDeltaRatio < 0) b3 = 0;
+      else if (budgetDeltaRatio <= 0.10) b3 = 4;
+      else if (budgetDeltaRatio <= 0.30) b3 = 7;
+      else b3 = 5;
+
+      let c1 = 12;
+      if (dailyGapTraffic > 800) c1 = 0;
+      else if (dailyGapTraffic > 500) c1 = 4;
+      else if (dailyGapTraffic > 250) c1 = 8;
+
+      let c2 = 0;
+      if (conv > 25) c2 = 3;
+      else if (conv >= 15) c2 = 4;
+      else if (conv >= 10) c2 = 2;
+
+      let c3 = 1;
+      if (atv > 1200) c3 = 3;
+      else if (atv >= 800) c3 = 4;
+      else if (atv >= 500) c3 = 3;
+
+      let d1 = 1;
+      if (risk > 25) d1 = 3;
+      else if (risk >= 10) d1 = 5;
+      else if (risk >= 5) d1 = 3;
+
+      const completeness = productStats.completeness || 0;
+      let d2 = 1;
+      if (completeness >= 0.80) d2 = 5;
+      else if (completeness >= 0.60) d2 = 3;
+
+      const total = Math.round(a1 + a2 + b1 + b2 + b3 + c1 + c2 + c3 + d1 + d2);
+      let status = '建議暫緩';
+      let badgeClass = 'bad';
+      if (total >= 80) {
+        status = '可投入下一階段';
+        badgeClass = 'good';
+      } else if (total >= 65) {
+        status = '可評估但需補強';
+        badgeClass = 'warn';
+      } else if (total >= 50) {
+        status = '高風險，需重設條件';
+        badgeClass = 'bad';
+      }
+
+      return { total, status, badgeClass };
+    }
+
     function getProductSellThroughRate() {
       const el = document.getElementById('productSellThroughRate');
       if (!el) return 70;
@@ -1350,31 +1475,26 @@
       document.getElementById('weightedMarginCard').textContent = pct(weightedMargin);
       document.getElementById('mixTotalCard').textContent = pct(mixTotal);
 
-      let score = 100;
-      score -= Math.min(38, dailyTrafficNeeded / 18);
-      score -= Math.min(18, breakevenRevenue / 300000);
-      score -= Math.min(12, risk / 2.5);
-      score += Math.min(12, Math.max(0, effectiveMargin - 40) * 0.6);
-      score += Math.min(8, Math.max(0, conv - 15) * 0.9);
-      score += Math.min(8, Math.max(0, atv - 700) / 80);
-      if (externalRevenue > 0) score += Math.min(10, externalRevenue / 100000);
-      if (mixTotal < 95 || mixTotal > 105) score -= 8;
-      score = Math.round(clamp(0, score, 100));
+      const gapToBreakEven = Math.max(0, totalCost - totalRevenue);
+      const dailyGapTraffic = (gapToBreakEven / atv) / (conv / 100) / days;
+      const productStats = getCurrentProductScoreStats();
+      const scoring = scoreInvestmentModel({
+        licensePassed,
+        totalCost,
+        totalRevenue,
+        productRevenue,
+        dailyGapTraffic,
+        conv,
+        atv,
+        risk,
+        productionBudget: production,
+        productStats
+      });
+      const score = scoring.total;
 
       const badge = document.getElementById('scoreBadge');
-      badge.className = 'badge';
-      let status = '';
-      if (score >= 75) {
-        status = '可投入下一階段';
-        badge.classList.add('good');
-      } else if (score >= 55) {
-        status = '可評估但需補強';
-        badge.classList.add('warn');
-      } else {
-        status = '建議暫緩或重估';
-        badge.classList.add('bad');
-      }
-      badge.textContent = status;
+      badge.className = `badge ${scoring.badgeClass}`;
+      badge.textContent = scoring.status;
       document.getElementById('scoreValue').textContent = `${score} / 100`;
       document.getElementById('scoreMeter').style.width = `${score}%`;
 
@@ -1412,7 +1532,7 @@
       if (!licensePassed) {
         badge.className = 'badge bad';
         badge.textContent = '授權金未達標';
-        document.getElementById('scoreValue').textContent = '不成案';
+        document.getElementById('scoreValue').textContent = '0 / 100';
         document.getElementById('scoreMeter').style.width = '0%';
         document.getElementById('diagnosisList').innerHTML = '<li>本案因實際授權金合計未達 IP 方成案授權金門檻，不會成案。</li>';
       } else {
